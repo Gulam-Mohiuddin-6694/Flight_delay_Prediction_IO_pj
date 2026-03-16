@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Delay Prediction | Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="brand">
+            <i class="fa-solid fa-plane-departure"></i>
+            AeroPredict
+        </div>
+        <div class="nav-links">
+            <a href="/" class="active"><i class="fa-solid fa-chart-line"></i> Predict</a>
+            <a href="/analytics"><i class="fa-solid fa-chart-pie"></i> Analytics</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="page-header">
+            <h1>Flight Delay Prediction System</h1>
+            <p>Predict flight delays using machine learning and real-time weather data</p>
+        </header>
+
+        <div class="card flight-lookup-section">
+            <div class="card-title" style="color: white; margin-bottom: 1rem; font-size: 1.125rem;">
+                <i class="fa-solid fa-magnifying-glass"></i> Quick Lookup by Flight Number
+            </div>
+            <div class="lookup-form">
+                <input type="text" id="flightNumber" placeholder="e.g., 6E2345, AI101, AA100" />
+                <button type="button" onclick="lookupFlight()" class="btn btn-secondary" style="border: none; color: var(--text-main);">
+                    <i class="fa-solid fa-search"></i> Lookup Flight
+                </button>
+            </div>
+            <div id="lookupResult" class="lookup-result"></div>
+            <div class="or-divider">OR ENTER MANUALLY BELOW</div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title"><i class="fa-solid fa-list-check"></i> Enter Flight Details</h2>
+            <form id="predictionForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="airline">Airline</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-plane"></i>
+                            <select id="airline" name="airline" required>
+                                <option value="">Select Airline...</option>
+                                <optgroup label="US Airlines">
+                                    <option value="AA">American Airlines (AA)</option>
+                                    <option value="DL">Delta Air Lines (DL)</option>
+                                    <option value="UA">United Airlines (UA)</option>
+                                    <option value="WN">Southwest Airlines (WN)</option>
+                                    <option value="B6">JetBlue Airways (B6)</option>
+                                    <option value="AS">Alaska Airlines (AS)</option>
+                                    <option value="NK">Spirit Airlines (NK)</option>
+                                    <option value="F9">Frontier Airlines (F9)</option>
+                                </optgroup>
+                                <optgroup label="Indian Airlines">
+                                    <option value="AI">Air India (AI)</option>
+                                    <option value="6E">IndiGo (6E)</option>
+                                    <option value="SG">SpiceJet (SG)</option>
+                                    <option value="UK">Vistara (UK)</option>
+                                    <option value="G8">Go First (G8)</option>
+                                </optgroup>
+                                <optgroup label="International Airlines">
+                                    <option value="EK">Emirates (EK)</option>
+                                    <option value="SQ">Singapore Airlines (SQ)</option>
+                                    <option value="BA">British Airways (BA)</option>
+                                    <option value="LH">Lufthansa (LH)</option>
+                                    <option value="QR">Qatar Airways (QR)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="origin">Origin Airport</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-location-dot"></i>
+                            <select id="origin" name="origin" required>
+                                <option value="">Select Origin...</option>
+                                <optgroup label="US Airports">
+                                    <option value="ATL">Atlanta (ATL)</option>
+                                    <option value="ORD">Chicago O'Hare (ORD)</option>
+                                    <option value="DFW">Dallas/Fort Worth (DFW)</option>
+                                    <option value="DEN">Denver (DEN)</option>
+                                    <option value="LAX">Los Angeles (LAX)</option>
+                                    <option value="JFK">New York JFK (JFK)</option>
+                                    <option value="SFO">San Francisco (SFO)</option>
+                                    <option value="LAS">Las Vegas (LAS)</option>
+                                    <option value="SEA">Seattle (SEA)</option>
+                                    <option value="MCO">Orlando (MCO)</option>
+                                    <option value="BOS">Boston (BOS)</option>
+                                    <option value="MIA">Miami (MIA)</option>
+                                </optgroup>
+                                <optgroup label="Indian Airports">
+                                    <option value="DEL">Delhi (DEL)</option>
+                                    <option value="BOM">Mumbai (BOM)</option>
+                                    <option value="BLR">Bangalore (BLR)</option>
+                                    <option value="MAA">Chennai (MAA)</option>
+                                    <option value="HYD">Hyderabad (HYD)</option>
+                                    <option value="CCU">Kolkata (CCU)</option>
+                                    <option value="AMD">Ahmedabad (AMD)</option>
+                                    <option value="PNQ">Pune (PNQ)</option>
+                                    <option value="GOI">Goa (GOI)</option>
+                                    <option value="COK">Kochi (COK)</option>
+                                </optgroup>
+                                <optgroup label="International Airports">
+                                    <option value="DXB">Dubai (DXB)</option>
+                                    <option value="SIN">Singapore (SIN)</option>
+                                    <option value="LHR">London Heathrow (LHR)</option>
+                                    <option value="CDG">Paris Charles de Gaulle (CDG)</option>
+                                    <option value="FRA">Frankfurt (FRA)</option>
+                                    <option value="HKG">Hong Kong (HKG)</option>
+                                    <option value="NRT">Tokyo Narita (NRT)</option>
+                                    <option value="ICN">Seoul Incheon (ICN)</option>
+                                    <option value="BKK">Bangkok (BKK)</option>
+                                    <option value="KUL">Kuala Lumpur (KUL)</option>
+                                    <option value="SYD">Sydney (SYD)</option>
+                                    <option value="MEL">Melbourne (MEL)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="destination">Destination Airport</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                            <select id="destination" name="destination" required>
+                                <option value="">Select Destination...</option>
+                                <optgroup label="US Airports">
+                                    <option value="ATL">Atlanta (ATL)</option>
+                                    <option value="ORD">Chicago O'Hare (ORD)</option>
+                                    <option value="DFW">Dallas/Fort Worth (DFW)</option>
+                                    <option value="DEN">Denver (DEN)</option>
+                                    <option value="LAX">Los Angeles (LAX)</option>
+                                    <option value="JFK">New York JFK (JFK)</option>
+                                    <option value="SFO">San Francisco (SFO)</option>
+                                    <option value="LAS">Las Vegas (LAS)</option>
+                                    <option value="SEA">Seattle (SEA)</option>
+                                    <option value="MCO">Orlando (MCO)</option>
+                                    <option value="BOS">Boston (BOS)</option>
+                                    <option value="MIA">Miami (MIA)</option>
+                                </optgroup>
+                                <optgroup label="Indian Airports">
+                                    <option value="DEL">Delhi (DEL)</option>
+                                    <option value="BOM">Mumbai (BOM)</option>
+                                    <option value="BLR">Bangalore (BLR)</option>
+                                    <option value="MAA">Chennai (MAA)</option>
+                                    <option value="HYD">Hyderabad (HYD)</option>
+                                    <option value="CCU">Kolkata (CCU)</option>
+                                    <option value="AMD">Ahmedabad (AMD)</option>
+                                    <option value="PNQ">Pune (PNQ)</option>
+                                    <option value="GOI">Goa (GOI)</option>
+                                    <option value="COK">Kochi (COK)</option>
+                                </optgroup>
+                                <optgroup label="International Airports">
+                                    <option value="DXB">Dubai (DXB)</option>
+                                    <option value="SIN">Singapore (SIN)</option>
+                                    <option value="LHR">London Heathrow (LHR)</option>
+                                    <option value="CDG">Paris Charles de Gaulle (CDG)</option>
+                                    <option value="FRA">Frankfurt (FRA)</option>
+                                    <option value="HKG">Hong Kong (HKG)</option>
+                                    <option value="NRT">Tokyo Narita (NRT)</option>
+                                    <option value="ICN">Seoul Incheon (ICN)</option>
+                                    <option value="BKK">Bangkok (BKK)</option>
+                                    <option value="KUL">Kuala Lumpur (KUL)</option>
+                                    <option value="SYD">Sydney (SYD)</option>
+                                    <option value="MEL">Melbourne (MEL)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <i class="fa-solid fa-circle-info" style="font-size: 1.25rem;"></i>
+                    <p><strong>Note:</strong> Distance and time contextual factors are automatically calculated based on your selections and current time.</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-bolt"></i> Generate Prediction Model
+                </button>
+            </form>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p style="color: var(--text-muted); font-weight: 500;">Analyzing ML inferences and real-time APIs...</p>
+        </div>
+
+        <div id="result" class="card" style="display: none;">
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
