@@ -1,0 +1,379 @@
+# System Architecture Diagram
+
+## High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           USER BROWSER                              │
+│                     (Chrome, Firefox, Edge, etc.)                   │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+                             │ HTTP Request/Response
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│                      FLASK WEB SERVER                               │
+│                         (app.py)                                    │
+│                                                                     │
+│  Routes:                                                            │
+│  • GET  /              → Home Page                                  │
+│  • POST /predict       → Make Prediction                            │
+│  • GET  /analytics     → Analytics Dashboard                        │
+│  • GET  /api/analytics-data → Statistics                            │
+│  • GET  /generate-charts    → Create Charts                         │
+└──────┬──────────────────────────────────────────────┬──────────────┘
+       │                                               │
+       │                                               │
+┌──────▼──────────────────┐                  ┌────────▼──────────────┐
+│  PREDICTION PIPELINE    │                  │  ANALYTICS PIPELINE   │
+│    (predict.py)         │                  │     (app.py)          │
+└──────┬──────────────────┘                  └────────┬──────────────┘
+       │                                               │
+       │                                               │
+┌──────▼──────────────────────────────────────────────▼──────────────┐
+│                    DATA & MODEL LAYER                               │
+│                                                                     │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐             │
+│  │   Trained   │  │ Preprocessor │  │   Dataset    │             │
+│  │   ML Model  │  │   Objects    │  │  (CSV File)  │             │
+│  │   (.pkl)    │  │    (.pkl)    │  │              │             │
+│  └─────────────┘  └──────────────┘  └──────────────┘             │
+└─────────────────────────────────────────────────────────────────────┘
+       │
+       │
+┌──────▼──────────────────────────────────────────────────────────────┐
+│                    EXTERNAL SERVICES                                │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────┐          │
+│  │         OpenWeather API                              │          │
+│  │  https://api.openweathermap.org/data/2.5/weather    │          │
+│  │                                                      │          │
+│  │  Returns: Temperature, Humidity, Wind, Visibility   │          │
+│  └──────────────────────────────────────────────────────┘          │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## Prediction Flow Diagram
+
+```
+┌──────────────┐
+│  User Input  │
+│              │
+│ • Airline    │
+│ • Origin     │
+│ • Destination│
+│ • Distance   │
+│ • Date/Time  │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Flask Route Handler     │
+│  POST /predict           │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Weather API Call        │
+│  (weather_api.py)        │
+│                          │
+│  • Get city from airport │
+│  • Fetch weather data    │
+│  • Calculate severity    │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Feature Preparation     │
+│  (predict.py)            │
+│                          │
+│  • Combine flight data   │
+│  • Add weather features  │
+│  • Encode categories     │
+│  • Scale numerical data  │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  ML Model Prediction     │
+│  (delay_model.pkl)       │
+│                          │
+│  • Load trained model    │
+│  • Predict delay class   │
+│  • Calculate probability │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Format Response         │
+│                          │
+│  • Prediction (0/1)      │
+│  • Probability (%)       │
+│  • Status (text)         │
+│  • Weather info          │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Return JSON to Browser  │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Display Results         │
+│  (JavaScript)            │
+│                          │
+│  • Show probability      │
+│  • Display status        │
+│  • Show weather data     │
+└──────────────────────────┘
+```
+
+## Training Pipeline Diagram
+
+```
+┌──────────────────────────┐
+│  Raw Dataset             │
+│  (flights.csv)           │
+│                          │
+│  50,000+ flight records  │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Data Cleaning           │
+│  (data_preprocessing.py) │
+│                          │
+│  • Remove missing values │
+│  • Handle outliers       │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Feature Engineering     │
+│                          │
+│  • Peak hour detection   │
+│  • Weekend flag          │
+│  • Time extraction       │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Encoding & Scaling      │
+│                          │
+│  • Label encode airlines │
+│  • Label encode airports │
+│  • StandardScaler        │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Create Target Variable  │
+│                          │
+│  Delayed if > 15 minutes │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  Train/Test Split        │
+│                          │
+│  80% Training            │
+│  20% Testing             │
+└──────┬───────────────────┘
+       │
+       ├─────────────┬─────────────┐
+       │             │             │
+       ▼             ▼             ▼
+┌──────────┐  ┌──────────┐  ┌──────────┐
+│ Logistic │  │  Random  │  │ Gradient │
+│Regression│  │  Forest  │  │ Boosting │
+└────┬─────┘  └────┬─────┘  └────┬─────┘
+     │             │             │
+     └─────────────┴─────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────┐
+│  Model Evaluation                │
+│                                  │
+│  • Accuracy                      │
+│  • Precision                     │
+│  • Recall                        │
+│  • F1 Score                      │
+│  • Confusion Matrix              │
+└──────┬───────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────┐
+│  Select Best Model               │
+│  (Highest F1 Score)              │
+└──────┬───────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────┐
+│  Save Model & Preprocessor       │
+│                                  │
+│  • delay_model.pkl               │
+│  • preprocessor.pkl              │
+│  • feature_columns.pkl           │
+└──────────────────────────────────┘
+```
+
+## Data Flow in Application
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        FRONTEND LAYER                           │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  index.html  │  │  style.css   │  │  script.js   │         │
+│  │              │  │              │  │              │         │
+│  │ • Form       │  │ • Styling    │  │ • AJAX calls │         │
+│  │ • Display    │  │ • Responsive │  │ • Validation │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             │ HTTP POST
+                             │
+┌────────────────────────────▼────────────────────────────────────┐
+│                       BACKEND LAYER                             │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │              Flask Application (app.py)              │      │
+│  │                                                      │      │
+│  │  • Route handling                                    │      │
+│  │  • Request validation                                │      │
+│  │  • Response formatting                               │      │
+│  └────────────┬─────────────────────────┬───────────────┘      │
+│               │                         │                      │
+│               ▼                         ▼                      │
+│  ┌────────────────────┐   ┌────────────────────┐              │
+│  │   predict.py       │   │  weather_api.py    │              │
+│  │                    │   │                    │              │
+│  │ • Load model       │   │ • API calls        │              │
+│  │ • Prepare features │   │ • Parse response   │              │
+│  │ • Make prediction  │   │ • Calculate index  │              │
+│  └────────────────────┘   └────────────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+                             │
+                             │
+┌────────────────────────────▼────────────────────────────────────┐
+│                      STORAGE LAYER                              │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ ML Models    │  │ Preprocessor │  │   Dataset    │         │
+│  │ (.pkl files) │  │ (.pkl files) │  │ (.csv file)  │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Component Interaction Matrix
+
+```
+┌──────────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
+│ Component    │ app.py  │predict  │weather  │preproc  │ model   │
+├──────────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ app.py       │    -    │  calls  │    -    │    -    │    -    │
+├──────────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ predict.py   │  used   │    -    │  calls  │  loads  │  loads  │
+├──────────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ weather_api  │    -    │  used   │    -    │    -    │    -    │
+├──────────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ preprocess   │    -    │  used   │    -    │    -    │    -    │
+├──────────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ train_model  │    -    │    -    │    -    │  uses   │ creates │
+└──────────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
+```
+
+## File Dependencies
+
+```
+app.py
+├── src/predict.py
+│   ├── src/weather_api.py
+│   ├── models/delay_model.pkl
+│   ├── models/preprocessor.pkl
+│   └── models/feature_columns.pkl
+├── templates/index.html
+│   ├── static/css/style.css
+│   └── static/js/script.js
+└── templates/analytics.html
+    └── data/flights.csv
+
+train_model.py
+├── src/data_preprocessing.py
+├── data/flights.csv
+└── creates:
+    ├── models/delay_model.pkl
+    ├── models/preprocessor.pkl
+    └── models/feature_columns.pkl
+```
+
+## Technology Stack Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    PRESENTATION LAYER                       │
+│                                                             │
+│  HTML5 │ CSS3 │ JavaScript │ Responsive Design             │
+└─────────────────────────────────────────────────────────────┘
+                             │
+┌─────────────────────────────▼───────────────────────────────┐
+│                    APPLICATION LAYER                        │
+│                                                             │
+│  Flask │ Python 3.8+ │ RESTful API                         │
+└─────────────────────────────────────────────────────────────┘
+                             │
+┌─────────────────────────────▼───────────────────────────────┐
+│                    BUSINESS LOGIC LAYER                     │
+│                                                             │
+│  ML Models │ Feature Engineering │ Prediction Logic        │
+└─────────────────────────────────────────────────────────────┘
+                             │
+┌─────────────────────────────▼───────────────────────────────┐
+│                    DATA ACCESS LAYER                        │
+│                                                             │
+│  pandas │ numpy │ joblib │ CSV Files                       │
+└─────────────────────────────────────────────────────────────┘
+                             │
+┌─────────────────────────────▼───────────────────────────────┐
+│                    EXTERNAL SERVICES                        │
+│                                                             │
+│  OpenWeather API │ HTTP Requests                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Deployment Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      PRODUCTION                             │
+│                                                             │
+│  ┌──────────────┐                                           │
+│  │   Nginx      │  (Reverse Proxy)                          │
+│  │   Port 80    │                                           │
+│  └──────┬───────┘                                           │
+│         │                                                   │
+│  ┌──────▼───────┐                                           │
+│  │  Gunicorn    │  (WSGI Server)                            │
+│  │  Port 8000   │                                           │
+│  └──────┬───────┘                                           │
+│         │                                                   │
+│  ┌──────▼───────┐                                           │
+│  │ Flask App    │  (Application)                            │
+│  └──────────────┘                                           │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                     DEVELOPMENT                             │
+│                                                             │
+│  ┌──────────────┐                                           │
+│  │ Flask Dev    │  (Built-in Server)                        │
+│  │ Server       │                                           │
+│  │ Port 5000    │                                           │
+│  └──────────────┘                                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+This diagram shows the complete system architecture and data flow
+of the Flight Delay Prediction Web Application.
